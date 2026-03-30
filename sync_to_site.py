@@ -38,16 +38,29 @@ def copy_with_frontmatter(src_path, dest_path, default_title=""):
 for item in os.listdir(SOURCE_DIR):
     item_path = os.path.join(SOURCE_DIR, item)
     if os.path.isdir(item_path):
-        readme_path = os.path.join(item_path, "README.md")
-        if os.path.exists(readme_path):
-            target_sub_dir = os.path.join(TARGET_DIR, item)
-            os.makedirs(target_sub_dir, exist_ok=True)
-            default_t = item.split("-", 1)[-1].replace("-", " ").title() if "-" in item else item
-            copy_with_frontmatter(readme_path, os.path.join(target_sub_dir, "index.md"), default_t)
+        target_sub_dir = os.path.join(TARGET_DIR, item)
+        os.makedirs(target_sub_dir, exist_ok=True)
+        for root, _, files in os.walk(item_path):
+            for file in files:
+                if file.endswith('.md'):
+                    src_file_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(src_file_path, item_path)
+                    dest_file_path = os.path.join(target_sub_dir, rel_path)
+                    os.makedirs(os.path.dirname(dest_file_path), exist_ok=True)
+                    
+                    if file.endswith("README.md"):
+                        # Save readme as index.md for Starlight routing
+                        default_t = item.split("-", 1)[-1].replace("-", " ").title() if "-" in item else item
+                        copy_with_frontmatter(src_file_path, os.path.join(os.path.dirname(dest_file_path), "index.md"), default_t)
+                    else:
+                        default_t = file.replace(".md", "")
+                        copy_with_frontmatter(src_file_path, dest_file_path, default_t)
 
 # 处理大根目录文章与作战图 (直接放入 src/content/docs)
 docs_root = os.path.join(TARGET_DIR, "..")
 copy_with_frontmatter(os.path.join(SOURCE_DIR, "README.md"), os.path.join(docs_root, "000-项目哲学.md"), "项目哲学")
-copy_with_frontmatter(os.path.join(SOURCE_DIR, "00-project-cockpit/01-planning-and-budget/000-全周期装修施工流程图.md"), os.path.join(docs_root, "000-全周期施工导航.md"), "全周期施工导航")
+flowchart_path = os.path.join(SOURCE_DIR, "00-project-cockpit/01-planning-and-budget/202603281538-000-全周期装修施工流程图.md")
+if os.path.exists(flowchart_path):
+    copy_with_frontmatter(flowchart_path, os.path.join(docs_root, "000-全周期施工导航.md"), "全周期施工导航")
 
 print("✅ 所有文档已成功打上 Astro 所需的 YAML Frontmatter, 并同步完毕！")
